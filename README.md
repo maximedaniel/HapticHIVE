@@ -42,13 +42,13 @@
 
 
 ## Documentation
+
+### Pulse
 ```C
 void pulse(TacHammer* tacHammer, double intensity, double milliseconds)
 ```
-### **Description**
-drives the hammer towards the closed end of the TacHammer. When the hammer rebounds off of the repelling magnetic array, the inaudible pulse haptic sensation is created. pulse is intended to be sequenced with subsequent pulse and hit commands and if called on its own, the hammer may travel after the rebound and strike the open end.
-### **Example**
-`pulse(M0, 0.5, 8)` asks the tacHammer M0 to generate a pulse at 50% intensity for 8 ms.
+drives the hammer towards the closed end of the TacHammer. When the hammer rebounds off of the repelling magnetic array, the inaudible pulse haptic sensation is created. pulse is intended to be sequenced with subsequent pulse and hit commands and if called on its own, the hammer may travel after the rebound and strike the open end.</br>
+**Example:** `pulse(M0, 0.5, 8) asks the tacHammer M0 to generate a pulse at 50% intensity for 8 ms.`{:.c}
 
 </br></br></br>
 
