@@ -1,11 +1,12 @@
-#ifndef TacHammers_h
-#define TacHammers_h
+#ifndef HapticHIVE_h
+#define HapticHIVE_h
 #include "Arduino.h"
 #include <Wire.h>
 #include <xtensa/core-macros.h>
 #include <WiFi.h>
 #include <ESPAsyncWebSrv.h>
 #include <esp32-hal-log.h>
+#include <ArduinoJson.h>
 //#include <ESPAsyncWebServer.h>
 
 #define SERIAL_BAUDRATE 115200
@@ -51,6 +52,9 @@
 #define MUX3_CHANNEL 1
 #define MUX_NANOSECONDS_DELAY 200
 
+// STREAMING
+#define WEBSOCKET_DELAY 500
+
 struct HitAndPulseParameters{
    double intensity;
    double milliseconds;
@@ -80,6 +84,16 @@ struct TacHammer{
    bool stop;
 };
 
+// - heart_rate (double)
+// - stationary_detect (int)
+// - motion_detect (int)
+// - step_counter (int)
+// - accelerometer [double, double, double]
+// - Gyroscope [double, double, double]
+// - Light (double)
+// - Presssure (double)
+// - Proximity (double)
+
 extern TacHammer* M0;
 extern TacHammer* M1;
 extern TacHammer* M2;
@@ -87,9 +101,15 @@ extern TacHammer* M3;
 
 
 // Functions
- void setupSmartWatch();
+ void setupSmartWatch(
+    void (* heartRateCallback)(unsigned int, double),
+    void (* accelerometerCallback)(unsigned int, double, double, double),
+    void (* gyroscopeCallback)(unsigned int, double, double, double),
+    void (* lightCallback)(unsigned int, double),
+    void (* stepCounterCallback)(unsigned int, double)
+ );
  void cleanupSmartWatch();
- void setupTacHammers();
+ void setupTacHammers(TacHammer* tacHammerA, TacHammer* tacHammerB, TacHammer* tacHammerC, TacHammer* tacHammerD);
  void hit(TacHammer* tacHammer, double intensity, double milliseconds);
  void pulse(TacHammer* tacHammer, double intensity, double milliseconds);
  void singlePulse(TacHammer* tacHammer, double intensity, double milliseconds);

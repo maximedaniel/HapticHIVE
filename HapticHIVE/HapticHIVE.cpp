@@ -1,5 +1,5 @@
 
-#include "TacHammers.h"
+#include "HapticHIVE.h"
 static const char* TAG = "MyModule";
 // I2C OBJECTS AND SEMAPHORES
 TwoWire twoWire0(0);
@@ -44,6 +44,22 @@ const char* password = "ubc";
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
 
+// JSON
+unsigned long prev_fetch_time;
+StaticJsonDocument<300> jsonBiosensors;
+char buffer[300];
+
+// BIOSIGNALS
+double __heartRate = 0;
+void (*__heartRateCallback)(unsigned int, double);
+double __accelerometer[3] = {0,0,0};
+void (*__accelerometerCallback)(unsigned int, double, double, double);
+double __gyroscope[3] = {0,0,0};
+void (*__gyroscopeCallback)(unsigned int, double, double, double);
+double __light = 0;
+void (*__lightCallback)(unsigned int, double);
+double __stepCounter = 0;
+void (*__stepCounterCallback)(unsigned int, double);
 
 /**
 * pulse drives the hammer towards the closed end of the TacHammer.
@@ -176,14 +192,19 @@ void vibrate(TacHammer* tacHammer, double frequency, double intensity, double du
 void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len){
   if(type == WS_EVT_CONNECT){
     ESP_LOGI("WebSocket", "(%s | %u) connect", server->url(), client->id());
+    //ESP_LOGI("WebSocket", "Smartwatch connected");
   } else if(type == WS_EVT_DISCONNECT){
-    ESP_LOGI("WebSocket", "(%s | %u) disconnect", server->url(), client->id());
+    ESP_LOGI("WebSocket", "(%s | %u) disconnected", server->url(), client->id());
+    //ESP_LOGI("WebSocket", "Smartwatch disconnected");
   } else if(type == WS_EVT_ERROR){
     ESP_LOGI("WebSocket", "(%s | %u) error(%u): %s", server->url(), client->id(), *((uint16_t*)arg), (char*)data);
+    //ESP_LOGI("WebSocket", "Smartwatch error(%u): %s", *((uint16_t*)arg), (char*)data);
 
   } else if(type == WS_EVT_PONG){
     ESP_LOGI("WebSocket", "(%s | %u) pong[%u]: %s", server->url(), client->id(), len, (len)?(char*)data:"");
+    //ESP_LOGI("WebSocket", "Smartwatch pong(%u): %s", len, (len)?(char*)data:"");
   } else if(type == WS_EVT_DATA){
+    
     AwsFrameInfo * info = (AwsFrameInfo*)arg;
     String msg = "";
     if(info->final && info->index == 0 && info->len == len){
@@ -191,9 +212,47 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
       ESP_LOGI("WebSocket", "(%s | %u) %s-message[%llu]: ", server->url(), client->id(), (info->opcode == WS_TEXT)?"text":"binary", info->len);
 
       if(info->opcode == WS_TEXT){
+        DeserializationError error = deserializeJson(jsonBiosensors, ((char*)data));
+        if (error) {
+          Serial.print(F("deserializeJson() failed: "));
+          Serial.println(error.f_str());
+        } else {
+          serializeJsonPretty(jsonBiosensors, Serial);
+          unsigned int currentTime = millis();
+
+          if (jsonBiosensors["heartRate"] != __heartRate){
+            __heartRate = jsonBiosensors["heartRate"];
+            __heartRateCallback(currentTime, __heartRate);
+          }
+          
+          if (jsonBiosensors["accelerometer"][0] != __accelerometer[0] || jsonBiosensors["accelerometer"][1] != __accelerometer[1]  || jsonBiosensors["accelerometer"][2] != __accelerometer[2]){
+            __accelerometer[0]  = jsonBiosensors["accelerometer"][0];
+            __accelerometer[1]  = jsonBiosensors["accelerometer"][1];
+            __accelerometer[2]  = jsonBiosensors["accelerometer"][2];
+            __accelerometerCallback(currentTime, __accelerometer[0], __accelerometer[1], __accelerometer[2]);
+          }
+
+          if (jsonBiosensors["gyroscope"][0] != __gyroscope[0] || jsonBiosensors["gyroscope"][1] != __gyroscope[1]  || jsonBiosensors["gyroscope"][2] != __gyroscope[2]){
+            __gyroscope[0]  = jsonBiosensors["gyroscope"][0];
+            __gyroscope[1]  = jsonBiosensors["gyroscope"][1];
+            __gyroscope[2]  = jsonBiosensors["gyroscope"][2];
+            __gyroscopeCallback(currentTime, __gyroscope[0], __gyroscope[1], __gyroscope[2]);
+          }
+
+          if (jsonBiosensors["light"] != __light){
+            __light = jsonBiosensors["light"];
+            __lightCallback(currentTime, __light);
+          }
+
+          if (jsonBiosensors["stepCounter"] != __stepCounter){
+            __stepCounter = jsonBiosensors["stepCounter"];
+            __stepCounterCallback(currentTime, __stepCounter);
+          }
+        }
         for(size_t i=0; i < info->len; i++) {
           msg += (char) data[i];
         }
+        Serial.printf("%s\n",msg.c_str());
       } else {
         char buff[3];
         for(size_t i=0; i < info->len; i++) {
@@ -201,7 +260,7 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
           msg += buff ;
         }
       }
-      Serial.printf("%s\n",msg.c_str());
+      //Serial.printf("%s\n",msg.c_str());
 
       // if(info->opcode == WS_TEXT)
       //   client->text("I got your text message");
@@ -218,6 +277,53 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
       ESP_LOGI("WebSocket", "(%s | %u) frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT)?"text":"binary", info->index, info->index + len);
 
       if(info->opcode == WS_TEXT){
+        DeserializationError error = deserializeJson(jsonBiosensors, ((char*)data));
+        if (error) {
+          Serial.print(F("deserializeJson() failed: "));
+          Serial.println(error.f_str());
+        } else {
+          //serializeJsonPretty(jsonBiosensors, Serial);
+          unsigned int currentTime = millis();
+
+          if (jsonBiosensors["heartRate"] != __heartRate){
+            __heartRate = jsonBiosensors["heartRate"];
+            __heartRateCallback(currentTime, __heartRate);
+          }
+          
+          if (jsonBiosensors["accelerometer"][0] != __accelerometer[0] || jsonBiosensors["accelerometer"][1] != __accelerometer[1]  || jsonBiosensors["accelerometer"][2] != __accelerometer[2]){
+            __accelerometer[0]  = jsonBiosensors["accelerometer"][0];
+            __accelerometer[1]  = jsonBiosensors["accelerometer"][1];
+            __accelerometer[2]  = jsonBiosensors["accelerometer"][2];
+            __accelerometerCallback(currentTime, __accelerometer[0], __accelerometer[1], __accelerometer[2]);
+          }
+
+          if (jsonBiosensors["gyroscope"][0] != __gyroscope[0] || jsonBiosensors["gyroscope"][1] != __gyroscope[1]  || jsonBiosensors["gyroscope"][2] != __gyroscope[2]){
+            __gyroscope[0]  = jsonBiosensors["gyroscope"][0];
+            __gyroscope[1]  = jsonBiosensors["gyroscope"][1];
+            __gyroscope[2]  = jsonBiosensors["gyroscope"][2];
+            __gyroscopeCallback(currentTime, __gyroscope[0], __gyroscope[1], __gyroscope[2]);
+          }
+
+          if (jsonBiosensors["light"] != __light){
+            __light = jsonBiosensors["light"];
+            __lightCallback(currentTime, __light);
+          }
+
+          if (jsonBiosensors["stepCounter"] != __stepCounter){
+            __stepCounter = jsonBiosensors["stepCounter"];
+            __stepCounterCallback(currentTime, __stepCounter);
+          }
+
+          // unsigned long time = millis();
+          // double heartRate = jsonBiosensors["heartRate"];
+          // //double accelerometer = jsonBiosensors["heartRate"];
+          // //double gyroscope = jsonBiosensors["heartRate"];
+          // double light = jsonBiosensors["heartRate"];
+          // double pressure = jsonBiosensors["heartRate"];
+          // double proximity = jsonBiosensors["heartRate"];
+        }
+
+
         for(size_t i=0; i < len; i++) {
           msg += (char) data[i];
         }
@@ -240,12 +346,46 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
   }
 }
 
-void cleanupSmartWatch(){
+void cleanupSmartWatch(){ 
+    // WiFiClient client = server.available();   // Listen for incoming clients
+    // if (client) {                             // If a new client connects,
+    //   Serial.println("New Client.");
+    // }
     ws.cleanupClients();
+    if(millis() - prev_fetch_time > WEBSOCKET_DELAY){
+      ws.textAll("get");
+      prev_fetch_time = millis();
+    }
+    // WiFiClient client = server.available();   // Listen for incoming clients
+    // if (client) {               
+    //   Serial.println("New Client.");          // print a message out in the serial port
+    //   String header = "";
+    //   while (client.connected(){
+    //       if (client.available()) {
+    //           char c = client.read();    
+    //           Serial.write(c); 
+    //           header += c;  
+    //           if (c == '\n') {  
+    //             Serial.println("FRAME RECEIVED!");
+    //           }
+    //       }
+    //   }
+    // }
 }
 
-void setupSmartWatch(){
+ void setupSmartWatch(
+    void (* heartRateCallback)(unsigned int, double),
+    void (* accelerometerCallback)(unsigned int, double, double, double),
+    void (* gyroscopeCallback)(unsigned int, double, double, double),
+    void (* lightCallback)(unsigned int, double),
+    void (* stepCounterCallback)(unsigned int, double)
+ ){
   
+  __heartRateCallback = heartRateCallback;
+  __accelerometerCallback = accelerometerCallback;
+  __gyroscopeCallback = gyroscopeCallback;
+  __lightCallback = lightCallback;
+  __stepCounterCallback = stepCounterCallback;
   // WIFI
   // Connect to Wi-Fi network with SSID and password
   // Remove the password parameter, if you want the AP (Access Point) to be open
@@ -256,6 +396,7 @@ void setupSmartWatch(){
   ws.onEvent(onWsEvent);
   server.addHandler(&ws);
   server.begin();
+  prev_fetch_time = millis();
 
   // String macAddress = getMacAddress();
   // snprintf(ssid, 100, "HackathonKit-%s", macAddress);
@@ -272,12 +413,13 @@ void setupSmartWatch(){
   
 }
 
-void setupTacHammers(){
-  // ALIAS
-  M0 = &tacHammer0;
-  M1 = &tacHammer1;
-  M2 = &tacHammer2;
-  M3 = &tacHammer3;
+
+ void setupTacHammers(TacHammer* tacHammerA, TacHammer* tacHammerB, TacHammer* tacHammerC, TacHammer* tacHammerD){
+  // // ALIAS
+  tacHammerA = M0;
+  tacHammerB  = M1;
+  tacHammerC = M2;
+  tacHammerD  = M3;
 
 
   // CLOCK SPEED
@@ -368,19 +510,28 @@ void setupTacHammer(TacHammer* tacHammer){
 
 
 void standbyOnB(TacHammer* tacHammer) {
-    selectMux(tacHammer -> mux_pin, tacHammer -> mux_channel);
-    tacHammer -> twoWire -> beginTransmission(DRV2605_ADDRESS);
-    tacHammer -> twoWire -> write(DRV2605_MODEREG);               // sets register pointer to the mode register (0x01)
-    tacHammer -> twoWire -> write(0x43);               // Puts the device pwm mode
-    tacHammer -> twoWire -> endTransmission();
+    SemaphoreHandle_t* twoWireSemaphore = tacHammer -> twoWireSemaphore;
+    if( xSemaphoreTake(*twoWireSemaphore, ( TickType_t ) SEMAPHORE_TICKS_WAIT ) == pdTRUE ){
+      selectMux(tacHammer -> mux_pin, tacHammer -> mux_channel);
+      tacHammer -> twoWire -> beginTransmission(DRV2605_ADDRESS);
+      tacHammer -> twoWire -> write(DRV2605_MODEREG);               // sets register pointer to the mode register (0x01)
+      tacHammer -> twoWire -> write(0x43);               // Puts the device pwm mode
+      tacHammer -> twoWire -> endTransmission();
+      xSemaphoreGive(*twoWireSemaphore);
+    }
 }
 
 void standbyOffB(TacHammer* tacHammer) {
-    selectMux(tacHammer -> mux_pin, tacHammer -> mux_channel);
-    tacHammer -> twoWire -> beginTransmission(DRV2605_ADDRESS);
-    tacHammer -> twoWire -> write(DRV2605_MODEREG);               // sets register pointer to the mode register (0x01)
-    tacHammer -> twoWire -> write(0x03);               // Sets Waveform Mode to pwm
-    tacHammer -> twoWire -> endTransmission();
+    SemaphoreHandle_t* twoWireSemaphore = tacHammer -> twoWireSemaphore;
+    if( xSemaphoreTake(*twoWireSemaphore, ( TickType_t ) SEMAPHORE_TICKS_WAIT ) == pdTRUE ){
+        selectMux(tacHammer -> mux_pin, tacHammer -> mux_channel);
+        tacHammer -> twoWire -> beginTransmission(DRV2605_ADDRESS);
+        tacHammer -> twoWire -> write(DRV2605_MODEREG);               // sets register pointer to the mode register (0x01)
+        tacHammer -> twoWire -> write(0x03);               // Sets Waveform Mode to pwm
+        tacHammer -> twoWire -> endTransmission();
+        xSemaphoreGive(*twoWireSemaphore);
+    }
+    
 }
 
 
@@ -428,20 +579,8 @@ void pauseTask(void *pvParameter) {
   TacHammer* tacHammer = (TacHammer*)pvParameter; 
   tacHammer -> active = true;
   double milliseconds = tacHammer -> hitAndPulseParams -> milliseconds;
-  SemaphoreHandle_t* twoWireSemaphore = tacHammer -> twoWireSemaphore;
   double us = milliseconds - ((int)milliseconds);
-  if(*twoWireSemaphore != NULL ){
-        //Serial.println("Wait for semaphore...");
-        if( xSemaphoreTake(*twoWireSemaphore, ( TickType_t ) SEMAPHORE_TICKS_WAIT ) == pdTRUE ){
-          //Serial.println("got semaphore!");
-          standbyOnB(tacHammer);
-          xSemaphoreGive(*twoWireSemaphore);
-        }  else {
-        //Serial.println("Semaphore is NOT free!");
-        }
-  }else {
-    //Serial.println("Semaphore is null!");
-  }
+  standbyOnB(tacHammer);
   for (int i = 0; i <= milliseconds; i++) {
     delay(1);
   }
@@ -454,80 +593,35 @@ void pulseTask(void *pvParameter) {
   TacHammer* tacHammer = (TacHammer*)pvParameter; 
   tacHammer -> active = true;
   HitAndPulseParameters* hitAndPulseParams = tacHammer -> hitAndPulseParams;
-  //Serial.println(tacHammer -> mux_pin);
-  //Serial.println(tacHammer -> pwm_pin);
-  SemaphoreHandle_t* twoWireSemaphore = tacHammer -> twoWireSemaphore;
   int minimumint = 140;
   int maximumint = 255;
   int pwmintensity = (hitAndPulseParams -> intensity * (maximumint - minimumint)) + minimumint;
-  //Serial.println(hitAndPulseParams -> intensity);
-  if(*twoWireSemaphore != NULL ){
-        //Serial.println("Wait for semaphore...");
-        if( xSemaphoreTake(*twoWireSemaphore, ( TickType_t ) SEMAPHORE_TICKS_WAIT ) == pdTRUE ){
-          //Serial.println("got semaphore!");
-          standbyOffB(tacHammer);
-          ledcWrite(tacHammer -> pwm_channel, pwmintensity);
-          usdelay(hitAndPulseParams -> milliseconds);
-          standbyOnB(tacHammer);
-          xSemaphoreGive(*twoWireSemaphore);
-        }  else {
-        //Serial.println("Semaphore is NOT free!");
-        }
-    }else {
-      //Serial.println("Semaphore is null!");
-    }
+  standbyOffB(tacHammer);
+  ledcWrite(tacHammer -> pwm_channel, pwmintensity);
+  usdelay(hitAndPulseParams -> milliseconds);
+  standbyOnB(tacHammer);
   tacHammer -> active = tacHammer -> stop = false;
   vTaskDelete(tacHammer -> taskHandle);
 }
 
 void singlePulseTask(void *pvParameter) {
-//   pulse(intensity, milliseconds);
-//   pause(3);
-//   pulse(intensity * 3 / 100, milliseconds * 2);
   TacHammer* tacHammer = (TacHammer*)pvParameter; 
   tacHammer -> active = true;
   HitAndPulseParameters* hitAndPulseParams = tacHammer -> hitAndPulseParams;
-  //Serial.println(tacHammer -> mux_pin);
-  //Serial.println(tacHammer -> pwm_pin);
   SemaphoreHandle_t* twoWireSemaphore = tacHammer -> twoWireSemaphore;
   int minimumint = 140;
   int maximumint = 255;
   int pwmintensity = (hitAndPulseParams -> intensity * (maximumint - minimumint)) + minimumint;
-  //Serial.println(hitAndPulseParams -> intensity);
-  if(*twoWireSemaphore != NULL ){
-        //Serial.println("Wait for semaphore...");
-        if( xSemaphoreTake(*twoWireSemaphore, ( TickType_t ) SEMAPHORE_TICKS_WAIT ) == pdTRUE ){
-          //Serial.println("got semaphore!");
-          standbyOffB(tacHammer);
-          ledcWrite(tacHammer -> pwm_channel, pwmintensity);
-          usdelay(hitAndPulseParams -> milliseconds);
-          standbyOnB(tacHammer);
-          xSemaphoreGive(*twoWireSemaphore);
-        }  else {
-        //Serial.println("Semaphore is NOT free!");
-        }
-    }else {
-      //Serial.println("Semaphore is null!");
-    }
-
+  standbyOffB(tacHammer);
+  ledcWrite(tacHammer -> pwm_channel, pwmintensity);
+  usdelay(hitAndPulseParams -> milliseconds);
+  standbyOnB(tacHammer);
   pause(tacHammer, 3);
-
   pwmintensity = ((hitAndPulseParams -> intensity * 3 / 100) * (maximumint - minimumint)) + minimumint;
-  if(*twoWireSemaphore != NULL ){
-        //Serial.println("Wait for semaphore...");
-        if( xSemaphoreTake(*twoWireSemaphore, ( TickType_t ) SEMAPHORE_TICKS_WAIT ) == pdTRUE ){
-          //Serial.println("got semaphore!");
-          standbyOffB(tacHammer);
-          ledcWrite(tacHammer -> pwm_channel, pwmintensity);
-          usdelay(hitAndPulseParams -> milliseconds * 2);
-          standbyOnB(tacHammer);
-          xSemaphoreGive(*twoWireSemaphore);
-        }  else {
-        //Serial.println("Semaphore is NOT free!");
-        }
-    }else {
-      //Serial.println("Semaphore is null!");
-    }
+  standbyOffB(tacHammer);
+  ledcWrite(tacHammer -> pwm_channel, pwmintensity);
+  usdelay(hitAndPulseParams -> milliseconds * 2);
+  standbyOnB(tacHammer);
   tacHammer -> active = tacHammer -> stop = false;
   vTaskDelete(tacHammer -> taskHandle);
 }
@@ -536,48 +630,25 @@ void hitTask(void *pvParameter) {
   TacHammer* tacHammer = (TacHammer*)pvParameter; 
   tacHammer -> active = true;
   HitAndPulseParameters* hitAndPulseParams = tacHammer -> hitAndPulseParams;
-  SemaphoreHandle_t* twoWireSemaphore = tacHammer -> twoWireSemaphore;
   int minimumint = 0;
   int maximumint = 110;
   int pwmintensity = maximumint - (hitAndPulseParams -> intensity * (maximumint - minimumint));
-  if(*twoWireSemaphore != NULL ){
-        //Serial.println("Wait for semaphore...");
-        if( xSemaphoreTake(*twoWireSemaphore, ( TickType_t ) SEMAPHORE_TICKS_WAIT ) == pdTRUE ){
-            standbyOffB(tacHammer);
-            ledcWrite(tacHammer -> pwm_channel, pwmintensity);
-            usdelay(hitAndPulseParams -> milliseconds);
-            standbyOnB(tacHammer);
-            xSemaphoreGive(*twoWireSemaphore);
-        }  else {
-        //Serial.println("Semaphore is NOT free!");
-        }
-    }else {
-      //Serial.println("Semaphore is null!");
-    }
+  standbyOffB(tacHammer);
+  ledcWrite(tacHammer -> pwm_channel, pwmintensity);
+  usdelay(hitAndPulseParams -> milliseconds);
+  standbyOnB(tacHammer);
   tacHammer -> active = tacHammer -> stop = false;
   vTaskDelete(tacHammer -> taskHandle);
 }
 
 void vibratePulse(TacHammer* tacHammer, double intensity, int hitduration) {
-  SemaphoreHandle_t* twoWireSemaphore = tacHammer -> twoWireSemaphore;
   int minimumint = 140;
   int maximumint = 255;
   int pwmintensity = (intensity * (maximumint - minimumint)) + minimumint;
-  if(*twoWireSemaphore != NULL ){
-        //Serial.println("Wait for semaphore...");
-        if( xSemaphoreTake(*twoWireSemaphore, ( TickType_t ) SEMAPHORE_TICKS_WAIT ) == pdTRUE ){
-          standbyOffB(tacHammer);
-          ledcWrite(tacHammer -> pwm_channel, pwmintensity);
-          usdelay(hitduration);
-          //usdelay(hitAndPulseParams -> milliseconds);
-          standbyOnB(tacHammer);
-          xSemaphoreGive(*twoWireSemaphore);
-        }  else {
-        //Serial.println("Semaphore is NOT free!");
-        }
-    }else {
-      //Serial.println("Semaphore is null!");
-    }
+  standbyOffB(tacHammer);
+  ledcWrite(tacHammer -> pwm_channel, pwmintensity);
+  usdelay(hitduration);
+  standbyOnB(tacHammer);
 }
 
 void vibrateTask(void *pvParameter) {
@@ -633,6 +704,7 @@ void vibrateTask(void *pvParameter) {
     //vibratePause(tacHammer, delayy);
     timedown -= (delayy + hitduration);
   }
+
   tacHammer -> active = tacHammer -> stop = false;
   vTaskDelete(tacHammer -> taskHandle);
 }
