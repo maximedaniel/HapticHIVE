@@ -12,10 +12,6 @@ extern TacHammer* M0;
 extern TacHammer* M1;
 extern TacHammer* M2;
 extern TacHammer* M3;
-TacHammer* A;
-TacHammer* B;
-TacHammer* C;
-TacHammer* D;
 
 unsigned long prev_pulse_time = 0;
 unsigned long animation_sequence_start_time;
