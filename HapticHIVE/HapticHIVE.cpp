@@ -37,7 +37,7 @@ uint32_t CPU_tick_ns;
 
 // Replace with your network credentials
 //char ssid [100];
-const char* ssid     = "HapticHIVE";
+String ssid = "HapticHIVE-";
 const char* password = "ubc";
 
 // Set web server port number to 80
@@ -136,8 +136,6 @@ void hit(TacHammer* tacHammer, double intensity, double milliseconds) {
 }
 
 
-
-
 /**
 *  Vibrate repeatedly calls the pulse command to drive the hammer into the closed end of the TacHammer.
 * parameters:
@@ -217,7 +215,7 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
           Serial.print(F("deserializeJson() failed: "));
           Serial.println(error.f_str());
         } else {
-          serializeJsonPretty(jsonBiosensors, Serial);
+          //serializeJsonPretty(jsonBiosensors, Serial);
           unsigned int currentTime = millis();
 
           if (jsonBiosensors["heartRate"] != __heartRate){
@@ -260,7 +258,7 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
           msg += buff ;
         }
       }
-      //Serial.printf("%s\n",msg.c_str());
+      Serial.printf("%s\n",msg.c_str());
 
       // if(info->opcode == WS_TEXT)
       //   client->text("I got your text message");
@@ -313,14 +311,6 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
             __stepCounter = jsonBiosensors["stepCounter"];
             __stepCounterCallback(currentTime, __stepCounter);
           }
-
-          // unsigned long time = millis();
-          // double heartRate = jsonBiosensors["heartRate"];
-          // //double accelerometer = jsonBiosensors["heartRate"];
-          // //double gyroscope = jsonBiosensors["heartRate"];
-          // double light = jsonBiosensors["heartRate"];
-          // double pressure = jsonBiosensors["heartRate"];
-          // double proximity = jsonBiosensors["heartRate"];
         }
 
 
@@ -347,30 +337,11 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
 }
 
 void cleanupSmartWatch(){ 
-    // WiFiClient client = server.available();   // Listen for incoming clients
-    // if (client) {                             // If a new client connects,
-    //   Serial.println("New Client.");
-    // }
     ws.cleanupClients();
     if(millis() - prev_fetch_time > WEBSOCKET_DELAY){
       ws.textAll("get");
       prev_fetch_time = millis();
     }
-    // WiFiClient client = server.available();   // Listen for incoming clients
-    // if (client) {               
-    //   Serial.println("New Client.");          // print a message out in the serial port
-    //   String header = "";
-    //   while (client.connected(){
-    //       if (client.available()) {
-    //           char c = client.read();    
-    //           Serial.write(c); 
-    //           header += c;  
-    //           if (c == '\n') {  
-    //             Serial.println("FRAME RECEIVED!");
-    //           }
-    //       }
-    //   }
-    // }
 }
 
  void setupSmartWatch(
@@ -380,15 +351,15 @@ void cleanupSmartWatch(){
     void (* lightCallback)(unsigned int, double),
     void (* stepCounterCallback)(unsigned int, double)
  ){
-  
+  // Callback pointers
   __heartRateCallback = heartRateCallback;
   __accelerometerCallback = accelerometerCallback;
   __gyroscopeCallback = gyroscopeCallback;
   __lightCallback = lightCallback;
   __stepCounterCallback = stepCounterCallback;
+
   // WIFI
-  // Connect to Wi-Fi network with SSID and password
-  // Remove the password parameter, if you want the AP (Access Point) to be open
+  ssid += getMacAddress();
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid); //  WiFi.softAP(ssid, password);
   IPAddress IP = WiFi.softAPIP();
@@ -397,31 +368,11 @@ void cleanupSmartWatch(){
   server.addHandler(&ws);
   server.begin();
   prev_fetch_time = millis();
-
-  // String macAddress = getMacAddress();
-  // snprintf(ssid, 100, "HackathonKit-%s", macAddress);
-  // Serial.print("Setting AP(Access Point) @");
-  // Serial.print(macAddress);
-  // Serial.println("...");
-  // WiFi.softAP(ssid, password);
-  // IPAddress IP = WiFi.softAPIP();
-  // Serial.print("AP IP address: ");
-  // Serial.println(IP);
-  //ws.onEvent(onEvent);
-  //server.addHandler(&ws);
-  //server.begin();
   
 }
 
 
- void setupTacHammers(TacHammer* tacHammerA, TacHammer* tacHammerB, TacHammer* tacHammerC, TacHammer* tacHammerD){
-  // // ALIAS
-  tacHammerA = M0;
-  tacHammerB  = M1;
-  tacHammerC = M2;
-  tacHammerD  = M3;
-
-
+ void setupTacHammers(){ 
   // CLOCK SPEED
   CPU_Frequency_Mhz = getCpuFrequencyMhz();
   CPU_tick_ns = 1.0 / (CPU_Frequency_Mhz / 1000.0);
@@ -616,7 +567,8 @@ void singlePulseTask(void *pvParameter) {
   ledcWrite(tacHammer -> pwm_channel, pwmintensity);
   usdelay(hitAndPulseParams -> milliseconds);
   standbyOnB(tacHammer);
-  pause(tacHammer, 3);
+  usdelay(3);
+  //pause(tacHammer, 3);
   pwmintensity = ((hitAndPulseParams -> intensity * 3 / 100) * (maximumint - minimumint)) + minimumint;
   standbyOffB(tacHammer);
   ledcWrite(tacHammer -> pwm_channel, pwmintensity);

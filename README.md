@@ -41,13 +41,13 @@
 - Proximity (double)
 
 
-## Documentation
+## Documentation - Haptic Actuators
 
 ```C
 void pulse(TacHammer* tacHammer, double intensity, double milliseconds)
 ```
 Drives the hammer towards the closed end of the TacHammer. When the hammer rebounds off of the repelling magnetic array, the inaudible pulse haptic sensation is created. pulse is intended to be sequenced with subsequent pulse and hit commands and if called on its own, the hammer may travel after the rebound and strike the open end.</br>
-**Example:** `pulse(M0, 0.5, 8)` asks the tacHammer M0 to generate a pulse at 50% intensity for 8 ms.
+**Example:** `pulse(M0, 0.5, 8);` asks the tacHammer M0 to generate a pulse at 50% intensity for 8 ms.
 
 </br>
 
@@ -73,6 +73,14 @@ void vibrate(TacHammer* tacHammer, double frequency, double intensity, double du
 vibrate repeatedly calls the pulse command to drive the hammer into the closed end of the TacHammer.</br>
 **Example:** `vibrate(M3, 210, 0.7, 0.25, 70);` asks the tacHammer M3 to generate a vibrate for 250ms at 210Hz with 70% intensity and 70% dutycyle.
 
+</br>
+
+```C
+void pause(TacHammer* tacHammer, double milliseconds)
+```
+Prevent any animation of the tacHammer for a given amount of milliseconds. </br>
+**Example:** `pause(M0, 100);` pause the tacHammer M0 for 100 ms.
+
 
 </br>
 
@@ -80,4 +88,39 @@ vibrate repeatedly calls the pulse command to drive the hammer into the closed e
 bool isFree(TacHammer* tacHammer)
 ```
 return true if the tacHammer is not busy running an animation else return false. isFree should always be called before starting an haptic animation.</br>
-**Example:** `if( isFree(M0) ) pulse(M0, 0.5, 8);` check that tacHammer M0 is free before starting a pulse animation.
+**Example:** `if(isFree(M0)) pulse(M0, 0.5, 8);` check that tacHammer M0 is free before starting a pulse animation.
+
+## Documentation - Physiological Sensors
+```C
+void heartRateCallback(unsigned int time, double bpm)
+```
+Called whenever a new heart rate reading is received from the smartwatch. The function gives the time in ms at which the measurement was taken (*time*) and the heart rate in bpm (*bpm*).
+
+</br>
+
+```C
+void accelerometerCallback(unsigned int time, double xAccel, double yAccel, double zAccel)
+```
+Called whenever new accelerometer reading is received from the smartwatch. The function gives the time in ms at which the measurement was taken (*time*) and the acceleration force along the X-axis (*xAccel*), Y-axis (*yAccel*), and the Z-axis (*zAccel*).
+
+</br>
+
+```C
+void void gyroscopeCallback(unsigned int time, double xRot, double yRot, double zRot)
+```
+Called whenever new gyroscope reading is received from the smartwatch. The function gives the time in ms at which the measurement was taken (*time*) and the rate of rotation in rad/s along the X-axis (*xRot*), Y-axis (*yRot*) and the Z-axis (*zRot*).
+
+```C
+void lightCallback(unsigned int time, double lux)
+```
+Called whenever a new light reading is received from the smartwatch.  The function gives the time in ms at which the measurement was taken (*time*) and the light measurement in lux (*lux*).
+
+</br>
+
+```C
+void stepCounterCallback(unsigned int time, double steps)
+```
+Called whenever a new step count reading is received from the smartwatch.  The function gives the time in ms at which the measurement was taken (*time*) and the number of steps since the smartwatch is started (*steps*).
+
+</br>
+

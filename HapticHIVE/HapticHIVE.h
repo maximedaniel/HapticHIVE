@@ -84,16 +84,6 @@ struct TacHammer{
    bool stop;
 };
 
-// - heart_rate (double)
-// - stationary_detect (int)
-// - motion_detect (int)
-// - step_counter (int)
-// - accelerometer [double, double, double]
-// - Gyroscope [double, double, double]
-// - Light (double)
-// - Presssure (double)
-// - Proximity (double)
-
 extern TacHammer* M0;
 extern TacHammer* M1;
 extern TacHammer* M2;
@@ -109,7 +99,7 @@ extern TacHammer* M3;
     void (* stepCounterCallback)(unsigned int, double)
  );
  void cleanupSmartWatch();
- void setupTacHammers(TacHammer* tacHammerA, TacHammer* tacHammerB, TacHammer* tacHammerC, TacHammer* tacHammerD);
+ void setupTacHammers();
  void hit(TacHammer* tacHammer, double intensity, double milliseconds);
  void pulse(TacHammer* tacHammer, double intensity, double milliseconds);
  void singlePulse(TacHammer* tacHammer, double intensity, double milliseconds);
