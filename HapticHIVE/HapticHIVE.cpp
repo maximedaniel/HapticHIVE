@@ -78,10 +78,10 @@ void pulse(TacHammer* tacHammer, double intensity, double milliseconds) {
     if (ans == pdPASS){
       tacHammer -> active = true;
     } else {
-      Serial.println("Could not create a pulseTask for this tacHammer!");
+      ESP_LOGE(tacHammer -> name, "Failed to generate a new animation with TacHammer %s", tacHammer -> name);
     }
   } else {
-    Serial.println("a pulseTask is already running for this tacHammer!");
+    ESP_LOGE(tacHammer -> name, "TacHammer %s is already running an animation. Use isFree(%s) to check that %s is ready to run a new animation.", tacHammer -> name, tacHammer -> name, tacHammer -> name);
   }
   
 }
@@ -104,10 +104,10 @@ void singlePulse(TacHammer* tacHammer, double intensity, double milliseconds) {
     if (ans == pdPASS){
       tacHammer -> active = true;
     } else {
-      Serial.println("Could not create a singlePulseTask for this tacHammer!");
+      ESP_LOGE(tacHammer -> name, "Failed to generate a new animation with TacHammer %s", tacHammer -> name);
     }
   } else {
-    Serial.println("a singlePulseTask is already running for this tacHammer!");
+    ESP_LOGE(tacHammer -> name, "TacHammer %s is already running an animation. Use isFree(%s) to check that %s is ready to run a new animation.", tacHammer -> name, tacHammer -> name, tacHammer -> name);
   }
 }
 
@@ -128,10 +128,10 @@ void hit(TacHammer* tacHammer, double intensity, double milliseconds) {
     if (ans == pdPASS){
       tacHammer -> active = true;
     } else {
-      Serial.println("Could not create a hitTask for this tacHammer!");
+      ESP_LOGE(tacHammer -> name, "Failed to generate a new animation with TacHammer %s", tacHammer -> name);
     }
   } else {
-    Serial.println("a hitTask is already running for this tacHammer!");
+    ESP_LOGE(tacHammer -> name, "TacHammer %s is already running an animation. Use isFree(%s) to check that %s is ready to run a new animation.", tacHammer -> name, tacHammer -> name, tacHammer -> name);
   }
 }
 
@@ -175,11 +175,11 @@ void vibrate(TacHammer* tacHammer, double frequency, double intensity, double du
     if (ans == pdPASS){
       tacHammer -> active = true;
     } else {
-      ESP_LOGE(tacHammer -> name, "failed to create a vibrateTask.");
+      ESP_LOGE(tacHammer -> name, "Failed to generate a new animation with TacHammer %s", tacHammer -> name);
     }
 
   } else {
-      ESP_LOGE(tacHammer -> name, "a vibrateTask is already running. Before starting a new task, use isFree(%s) to check that no task is running OR Use stop(%s) to kill the running task.", tacHammer -> name, tacHammer -> name);
+    ESP_LOGE(tacHammer -> name, "TacHammer %s is already running an animation. Use isFree(%s) to check that %s is ready to run a new animation.", tacHammer -> name, tacHammer -> name, tacHammer -> name);
   }
 }
 
@@ -189,33 +189,35 @@ void vibrate(TacHammer* tacHammer, double frequency, double intensity, double du
 // ================================================================================
 void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len){
   if(type == WS_EVT_CONNECT){
-    ESP_LOGI("WebSocket", "(%s | %u) connect", server->url(), client->id());
-    //ESP_LOGI("WebSocket", "Smartwatch connected");
+    //ESP_LOGI("WebSocket", "(%s | %u) connect", server->url(), client->id());
+    ESP_LOGI("WebSocket", "Smartwatch connected");
   } else if(type == WS_EVT_DISCONNECT){
-    ESP_LOGI("WebSocket", "(%s | %u) disconnected", server->url(), client->id());
-    //ESP_LOGI("WebSocket", "Smartwatch disconnected");
+    //ESP_LOGI("WebSocket", "(%s | %u) disconnected", server->url(), client->id());
+    ESP_LOGI("WebSocket", "Smartwatch disconnected");
   } else if(type == WS_EVT_ERROR){
-    ESP_LOGI("WebSocket", "(%s | %u) error(%u): %s", server->url(), client->id(), *((uint16_t*)arg), (char*)data);
-    //ESP_LOGI("WebSocket", "Smartwatch error(%u): %s", *((uint16_t*)arg), (char*)data);
+    //ESP_LOGI("WebSocket", "(%s | %u) error(%u): %s", server->url(), client->id(), *((uint16_t*)arg), (char*)data);
+    ESP_LOGI("WebSocket", "Smartwatch error(%u): %s", *((uint16_t*)arg), (char*)data);
 
   } else if(type == WS_EVT_PONG){
-    ESP_LOGI("WebSocket", "(%s | %u) pong[%u]: %s", server->url(), client->id(), len, (len)?(char*)data:"");
-    //ESP_LOGI("WebSocket", "Smartwatch pong(%u): %s", len, (len)?(char*)data:"");
+    //ESP_LOGI("WebSocket", "(%s | %u) pong[%u]: %s", server->url(), client->id(), len, (len)?(char*)data:"");
+    ESP_LOGI("WebSocket", "Smartwatch pong(%u): %s", len, (len)?(char*)data:"");
   } else if(type == WS_EVT_DATA){
     
     AwsFrameInfo * info = (AwsFrameInfo*)arg;
     String msg = "";
     if(info->final && info->index == 0 && info->len == len){
       //the whole message is in a single frame and we got all of it's data
-      ESP_LOGI("WebSocket", "(%s | %u) %s-message[%llu]: ", server->url(), client->id(), (info->opcode == WS_TEXT)?"text":"binary", info->len);
+      //ESP_LOGI("WebSocket", "(%s | %u) %s-message[%llu]: ", server->url(), client->id(), (info->opcode == WS_TEXT)?"text":"binary", info->len);
 
       if(info->opcode == WS_TEXT){
+        // for(size_t i=0; i < info->len; i++) {
+        //   msg += (char) data[i];
+        // }
+        // Serial.printf("%s\n",msg.c_str());
         DeserializationError error = deserializeJson(jsonBiosensors, ((char*)data));
         if (error) {
-          Serial.print(F("deserializeJson() failed: "));
-          Serial.println(error.f_str());
+          ESP_LOGI("WebSocket", "deserializeJson() failed: %s", error.f_str());
         } else {
-          //serializeJsonPretty(jsonBiosensors, Serial);
           unsigned int currentTime = millis();
 
           if (jsonBiosensors["heartRate"] != __heartRate){
@@ -247,92 +249,12 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
             __stepCounterCallback(currentTime, __stepCounter);
           }
         }
-        for(size_t i=0; i < info->len; i++) {
-          msg += (char) data[i];
-        }
-        Serial.printf("%s\n",msg.c_str());
-      } else {
-        char buff[3];
-        for(size_t i=0; i < info->len; i++) {
-          sprintf(buff, "%02x ", (uint8_t) data[i]);
-          msg += buff ;
-        }
-      }
-      Serial.printf("%s\n",msg.c_str());
-
-      // if(info->opcode == WS_TEXT)
-      //   client->text("I got your text message");
-      // else
-      //   client->binary("I got your binary message");
-    } else {
-      //message is comprised of multiple frames or the frame is split into multiple packets
-      if(info->index == 0){
-        if(info->num == 0)
-        ESP_LOGI("WebSocket", "(%s | %u)  %s-message start", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
-        ESP_LOGI("WebSocket", "(%s | %u) frame[%u] start[%llu]", server->url(), client->id(), info->num, info->len);
-      }
-
-      ESP_LOGI("WebSocket", "(%s | %u) frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT)?"text":"binary", info->index, info->index + len);
-
-      if(info->opcode == WS_TEXT){
-        DeserializationError error = deserializeJson(jsonBiosensors, ((char*)data));
-        if (error) {
-          Serial.print(F("deserializeJson() failed: "));
-          Serial.println(error.f_str());
-        } else {
-          //serializeJsonPretty(jsonBiosensors, Serial);
-          unsigned int currentTime = millis();
-
-          if (jsonBiosensors["heartRate"] != __heartRate){
-            __heartRate = jsonBiosensors["heartRate"];
-            __heartRateCallback(currentTime, __heartRate);
-          }
-          
-          if (jsonBiosensors["accelerometer"][0] != __accelerometer[0] || jsonBiosensors["accelerometer"][1] != __accelerometer[1]  || jsonBiosensors["accelerometer"][2] != __accelerometer[2]){
-            __accelerometer[0]  = jsonBiosensors["accelerometer"][0];
-            __accelerometer[1]  = jsonBiosensors["accelerometer"][1];
-            __accelerometer[2]  = jsonBiosensors["accelerometer"][2];
-            __accelerometerCallback(currentTime, __accelerometer[0], __accelerometer[1], __accelerometer[2]);
-          }
-
-          if (jsonBiosensors["gyroscope"][0] != __gyroscope[0] || jsonBiosensors["gyroscope"][1] != __gyroscope[1]  || jsonBiosensors["gyroscope"][2] != __gyroscope[2]){
-            __gyroscope[0]  = jsonBiosensors["gyroscope"][0];
-            __gyroscope[1]  = jsonBiosensors["gyroscope"][1];
-            __gyroscope[2]  = jsonBiosensors["gyroscope"][2];
-            __gyroscopeCallback(currentTime, __gyroscope[0], __gyroscope[1], __gyroscope[2]);
-          }
-
-          if (jsonBiosensors["light"] != __light){
-            __light = jsonBiosensors["light"];
-            __lightCallback(currentTime, __light);
-          }
-
-          if (jsonBiosensors["stepCounter"] != __stepCounter){
-            __stepCounter = jsonBiosensors["stepCounter"];
-            __stepCounterCallback(currentTime, __stepCounter);
-          }
-        }
-
-
-        for(size_t i=0; i < len; i++) {
-          msg += (char) data[i];
-        }
-      } else {
-        char buff[3];
-        for(size_t i=0; i < len; i++) {
-          sprintf(buff, "%02x ", (uint8_t) data[i]);
-          msg += buff ;
-        }
-      }
-      ESP_LOGI("WebSocket", "(%s | %u) %s", server->url(), client->id(), msg.c_str());
-
-      if((info->index + len) == info->len){
-        ESP_LOGI("WebSocket", "(%s | %u) frame[%u] end[%llu]", server->url(), client->id(), info->num, info->len);
-        if(info->final){
-          ESP_LOGI("WebSocket", "(%s | %u) %s-message end\n", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
-        }
-      }
-    }
+        // for(size_t i=0; i < info->len; i++) {
+        //   msg += (char) data[i];
+        // }
+        // Serial.printf("%s\n",msg.c_str());
+      } 
+    } 
   }
 }
 
@@ -363,7 +285,9 @@ void cleanupSmartWatch(){
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid); //  WiFi.softAP(ssid, password);
   IPAddress IP = WiFi.softAPIP();
-  ESP_LOGI("WiFi", "AP name: %s, IP address: %s", ssid, IP.toString());
+  char ssidChar[100];
+  ssid.toCharArray(ssidChar, ssid.length() + 1);
+  ESP_LOGI("Connectivity", "WiFi name: %s, IP address: %s", ssidChar, IP.toString());
   ws.onEvent(onWsEvent);
   server.addHandler(&ws);
   server.begin();
@@ -430,6 +354,7 @@ void setupTacHammer(TacHammer* tacHammer){
   uint32_t  created_pwm = ledcSetup(tacHammer -> pwm_channel, PWM_FREQUENCY, PWM_RESOLUTION_BITS);
   ledcAttachPin(tacHammer -> pwm_pin, tacHammer -> pwm_channel);
   ledcWrite(tacHammer -> pwm_channel, 0);
+
   // DRV INIT
   selectMux(tacHammer -> mux_pin, tacHammer -> pwm_channel);
   tacHammer -> twoWire -> beginTransmission(DRV2605_ADDRESS);
@@ -519,10 +444,11 @@ void pause(TacHammer* tacHammer, double milliseconds) {
     if (ans == pdPASS){
       tacHammer -> active = true;
     } else {
-      Serial.println("Could not create a pauseTask for this tacHammer!");
+      ESP_LOGE(tacHammer -> name, "Failed to generate a new animation with TacHammer %s", tacHammer -> name);
     }
+
   } else {
-    Serial.println("a pauseTask is already running for this tacHammer!");
+    ESP_LOGE(tacHammer -> name, "TacHammer %s is already running an animation. Use isFree(%s) to check that %s is ready to run a new animation.", tacHammer -> name, tacHammer -> name, tacHammer -> name);
   }
 }
 
@@ -568,7 +494,6 @@ void singlePulseTask(void *pvParameter) {
   usdelay(hitAndPulseParams -> milliseconds);
   standbyOnB(tacHammer);
   usdelay(3);
-  //pause(tacHammer, 3);
   pwmintensity = ((hitAndPulseParams -> intensity * 3 / 100) * (maximumint - minimumint)) + minimumint;
   standbyOffB(tacHammer);
   ledcWrite(tacHammer -> pwm_channel, pwmintensity);
@@ -629,22 +554,17 @@ void vibrateTask(void *pvParameter) {
   if (duration == 0) {
     hold =  true;
   }
-  
-  //HitAndPulseParameters firstHitAndPulseParams = {tacHammer, intensity, hitduration};
-  //HitAndPulseParameters secondHitAndPulseParams = {tacHammer, 0.002, delayy-3};
 
   while (hold) {
     if(tacHammer -> stop) break;
     vibratePulse(tacHammer, intensity, hitduration);
     usdelay(delayy);
-    //vibratePause(tacHammer, delayy);
   }
 
   while (timedown >= 0 && frequency < crossover) {
     if(tacHammer -> stop) break;
     vibratePulse(tacHammer, intensity, hitduration);
     usdelay(3);
-    //vibratePause(tacHammer, 3);
     vibratePulse(tacHammer, 0.002, delayy-3);
     timedown -= (delayy + hitduration);
   }
@@ -653,7 +573,6 @@ void vibrateTask(void *pvParameter) {
     if(tacHammer -> stop) break;
     vibratePulse(tacHammer, intensity, hitduration);
     usdelay(delayy);
-    //vibratePause(tacHammer, delayy);
     timedown -= (delayy + hitduration);
   }
 

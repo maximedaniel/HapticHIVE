@@ -10,11 +10,12 @@ extern TacHammer* M3;
 // User variables
 double i = 0;
 double j = 0;
-double k = 0;
+double k = 10;
 int nextAnimationM0 = 0;
 int nextAnimationM1 = 0;
 int nextAnimationM2andM3 = 0;
 double currentHeartRate = 0;
+double respiratoryRate = 0;
 
 /**
  * Called whenever a new heart rate reading is received from the smartwatch. 
@@ -24,6 +25,7 @@ void heartRateCallback(unsigned int time, double bpm) {
   Serial.print("heart rate:");
   Serial.println(bpm);
   currentHeartRate = bpm; // save heartrate reading
+  respiratoryRate = currentHeartRate/4; // rought estimation of the respiratory rate
 }
 
 /**
@@ -31,13 +33,13 @@ void heartRateCallback(unsigned int time, double bpm) {
  * The function gives the time in ms at which the measurement was taken (*time*) and the acceleration force along the X-axis (*xAccel*), Y-axis (*yAccel*), and the Z-axis (*zAccel*).
  **/
 void accelerometerCallback(unsigned int time, double xAccel, double yAccel, double zAccel) {
-  Serial.print("accelerometer: [");
-  Serial.print(xAccel);
-  Serial.print(", ");
-  Serial.print(yAccel);
-  Serial.print(", ");
-  Serial.print(zAccel);
-  Serial.println("]");
+  // Serial.print("accelerometer: [");
+  // Serial.print(xAccel);
+  // Serial.print(", ");
+  // Serial.print(yAccel);
+  // Serial.print(", ");
+  // Serial.print(zAccel);
+  // Serial.println("]");
 }
 
 /**
@@ -45,13 +47,13 @@ void accelerometerCallback(unsigned int time, double xAccel, double yAccel, doub
  * The function gives the time in ms at which the measurement was taken (*time*) and the rate of rotation in rad/s along the X-axis (*xRot*), Y-axis (*yRot*) and the Z-axis (*zRot*).
  **/
 void gyroscopeCallback(unsigned int time, double xRot, double yRot, double zRot) {
-  Serial.print("gyroscope: [");
-  Serial.print(xRot);
-  Serial.print(", ");
-  Serial.print(yRot);
-  Serial.print(", ");
-  Serial.print(zRot);
-  Serial.println("]");
+  // Serial.print("gyroscope: [");
+  // Serial.print(xRot);
+  // Serial.print(", ");
+  // Serial.print(yRot);
+  // Serial.print(", ");
+  // Serial.print(zRot);
+  // Serial.println("]");
 }
 
 /**
@@ -59,8 +61,8 @@ void gyroscopeCallback(unsigned int time, double xRot, double yRot, double zRot)
  * The function gives the time in ms at which the measurement was taken (*time*) and the light measurement in lux (*lux*).
  **/
 void lightCallback(unsigned int time, double lux) {
-  Serial.print("light:");
-  Serial.println(lux);
+  // Serial.print("light:");
+  // Serial.println(lux);
 }
 
 /**
@@ -68,8 +70,8 @@ void lightCallback(unsigned int time, double lux) {
  * The function gives the time in ms at which the measurement was taken (*time*) and the number of steps since the smartwatch is started (*steps*).
  **/
 void stepCounterCallback(unsigned int time, double steps) {
-  Serial.print("step counter:");
-  Serial.println(steps);
+  // Serial.print("step counter:");
+  // Serial.println(steps);
 }
 
 
@@ -142,9 +144,8 @@ void loop()
           nextAnimationM2andM3 = 1; // set the next animation to run once M2 and M3 are free again
         break;
         case 1: // increase the frequency of the vibration animation
-            if (k < 210) {
-              k += 10;
-            } else {
+            k += 10;
+            if (k > 210) {
               k = 10;
             }
           nextAnimationM2andM3 = 0;// restart the sequence

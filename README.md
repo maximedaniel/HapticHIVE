@@ -1,25 +1,18 @@
 # dfp-hackathon
 
-## Installation
-
-- Install the latest Arduino IDE
-- Install the latest arduino-espressif
-
-## Walkthrough an example / first step
-
-- Unplug battery
-- Plug ESP32
-- Upload Sample code
-- plug battery
-- turn on smartwatch
+Instructions to install and use HapticHIVE for the DFP hackathon (May 19th, 2023 at UBC-Okanagan)
 
 ## Installation 
 1. Download & Install Arduino IDE 2.1.0
 2. Install ESP32 board manager using Arduino IDE
-3. Install ESPAsyncWebSrv library using Arduino IDE:
+    - Go to ‘Preferences’ under ‘File’ menu
+    - Add additional url: https://espressif.github.io/arduino-esp32/package_esp32_index.json
+    - Open Boards Manager from Tools > Board menu and install esp32 platform
+3. Install ESPAsyncWebSrv and ArduinoJson library using Arduino IDE
     - Tools > Manage Libraries…
-4. Search for “ESPAsyncWebSrv” and install latest version
-4. Search for "ArduinoJson" and install latest version
+    - Search for “ESPAsyncWebSrv” and install latest version. If prompted to install dependencies → "Install all".
+    - Search for “ArduinoJson” and install latest version. If prompted to install dependencies → "Install all".
+
 5. Configure ESP32 board manager:
     - Tools > Boards: … > esp32 > ESP32 Dev Module
     - Tools > Core Debug Level: … > Info	
@@ -28,17 +21,6 @@
     - File > Open
     - navigate to the HapticHIVE directory
     - Sketch > Verify/Compile
-
-
-- heart_rate (double)
-- stationary_detect (int)
-- motion_detect (int)
-- step_counter (int)
-- accelerometer [double, double, double]
-- Gyroscope [double, double, double]
-- Light (double)
-- Presssure (double)
-- Proximity (double)
 
 
 ## Documentation - Haptic Actuators
