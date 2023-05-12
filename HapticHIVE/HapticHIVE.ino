@@ -1,5 +1,6 @@
 #include "HapticHIVE.h"
 #define SERIAL_BAUDRATE 115200
+#define SMARTWATCH_REQUEST_DELAY 500 // decrease this delay (ms) to increase number of physiological readings per second
 
 // TacHammer objects
 extern TacHammer* M0;
@@ -22,7 +23,9 @@ double respiratoryRate = 0;
  * The function gives the time in ms at which the measurement was taken (*time*) and the heart rate in bpm (*bpm*).
  **/
 void heartRateCallback(unsigned int time, double bpm) {
-  Serial.print("heart rate:");
+  Serial.print("[");
+  Serial.print(time);
+  Serial.print("] heart rate:");
   Serial.println(bpm);
   currentHeartRate = bpm; // save heartrate reading
   respiratoryRate = currentHeartRate/4; // rought estimation of the respiratory rate
@@ -88,8 +91,8 @@ void setup() {
 // active code goes here
 void loop()
 { 
-    cleanupSmartWatch(); // check for smartwatch messages
-
+    requestSmartWatch(SMARTWATCH_REQUEST_DELAY); // requests new physiological readings from the smartwatch every SMARTWATCH_REQUEST_DELAY milliseconds
+    
     // Repeatedly generate an hit with ramping up intensity using M0
     if(isFree(M0)){ // if M0 is free
       switch (nextAnimationM0){ // check the animation to run

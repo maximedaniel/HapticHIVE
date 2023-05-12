@@ -1,6 +1,5 @@
 # dfp-hackathon
-
-Instructions to install and use HapticHIVE for the DFP hackathon (May 19th, 2023 at UBC-Okanagan)
+Instructions to install and use the HapticHIVE hardware during the DFP hackathon on May 19th, 2023 at UBC's Okanagan Campus.
 
 ## Installation 
 1. Download & Install Arduino IDE 2.1.0
@@ -52,7 +51,7 @@ Drives the hammer towards the open end of the TacHammer. When the hammer strikes
 ```C
 void vibrate(TacHammer* tacHammer, double frequency, double intensity, double duration, int dutycycle)
 ```
-vibrate repeatedly calls the pulse command to drive the hammer into the closed end of the TacHammer.</br>
+Repeatedly calls the pulse command to drive the hammer into the closed end of the TacHammer.</br>
 **Example:** `vibrate(M3, 210, 0.7, 0.25, 70);` asks the tacHammer M3 to generate a vibrate for 250ms at 210Hz with 70% intensity and 70% dutycyle.
 
 </br>
@@ -69,7 +68,7 @@ Prevent any animation of the tacHammer for a given amount of milliseconds. </br>
 ```C
 bool isFree(TacHammer* tacHammer)
 ```
-return true if the tacHammer is not busy running an animation else return false. isFree should always be called before starting an haptic animation.</br>
+Returns true if the tacHammer is not busy running an animation else returns false. isFree should always be called before starting a new animation to check that the tacHammer is free.</br>
 **Example:** `if(isFree(M0)) pulse(M0, 0.5, 8);` check that tacHammer M0 is free before starting a pulse animation.
 
 ## Documentation - Physiological Sensors
@@ -103,6 +102,3 @@ Called whenever a new light reading is received from the smartwatch.  The functi
 void stepCounterCallback(unsigned int time, double steps)
 ```
 Called whenever a new step count reading is received from the smartwatch.  The function gives the time in ms at which the measurement was taken (*time*) and the number of steps since the smartwatch is started (*steps*).
-
-</br>
-

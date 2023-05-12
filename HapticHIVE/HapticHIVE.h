@@ -7,6 +7,7 @@
 #include <ESPAsyncWebSrv.h>
 #include <esp32-hal-log.h>
 #include <ArduinoJson.h>
+#include <esp_wifi.h>
 //#include <ESPAsyncWebServer.h>
 
 #define SERIAL_BAUDRATE 115200
@@ -52,8 +53,6 @@
 #define MUX3_CHANNEL 1
 #define MUX_NANOSECONDS_DELAY 200
 
-// STREAMING
-#define WEBSOCKET_DELAY 500
 
 struct HitAndPulseParameters{
    double intensity;
@@ -98,7 +97,7 @@ extern TacHammer* M3;
     void (* lightCallback)(unsigned int, double),
     void (* stepCounterCallback)(unsigned int, double)
  );
- void cleanupSmartWatch();
+ void requestSmartWatch(unsigned int delay);
  void setupTacHammers();
  void hit(TacHammer* tacHammer, double intensity, double milliseconds);
  void pulse(TacHammer* tacHammer, double intensity, double milliseconds);

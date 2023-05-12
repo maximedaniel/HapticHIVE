@@ -258,9 +258,9 @@ void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventT
   }
 }
 
-void cleanupSmartWatch(){ 
+void requestSmartWatch(unsigned int delay){ 
     ws.cleanupClients();
-    if(millis() - prev_fetch_time > WEBSOCKET_DELAY){
+    if(millis() - prev_fetch_time > delay){
       ws.textAll("get");
       prev_fetch_time = millis();
     }
@@ -281,8 +281,12 @@ void cleanupSmartWatch(){
   __stepCounterCallback = stepCounterCallback;
 
   // WIFI
-  ssid += getMacAddress();
   WiFi.mode(WIFI_AP);
+  String curr_ssid = getMacAddress();
+  if (curr_ssid.substring(curr_ssid.length() - 2) == "C0"){
+    curr_ssid = "32:AE:A4:07:0D:66";
+  }
+  ssid += curr_ssid;
   WiFi.softAP(ssid); //  WiFi.softAP(ssid, password);
   IPAddress IP = WiFi.softAPIP();
   char ssidChar[100];
