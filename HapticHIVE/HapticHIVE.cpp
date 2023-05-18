@@ -140,7 +140,7 @@ void hit(TacHammer* tacHammer, double intensity, double milliseconds) {
 *  Vibrate repeatedly calls the pulse command to drive the hammer into the closed end of the TacHammer.
 * parameters:
 *    - tacHammer: is either M0, M1, M2 or M3.
-*    - frequency: defines the frequency of the vibration.. it ranges from 0-300.
+*    - frequency: defines the frequency of the vibration.. it ranges from 10-300.
 *    - intensity: defines the strength of the vibrate. It ranges from [0-1] with 1 being strongest
 *    - dutycycle: defines what percent of the period the TacHammer is active. It ranges from 0-100.
 *    - duration: defines the length of vibration in s.
@@ -149,8 +149,8 @@ void hit(TacHammer* tacHammer, double intensity, double milliseconds) {
 *  - dutycycle| 32| 28| 33| 36| 38| 37| 41| 47| 45| 47| 39| 40| 44| 43| 40
 **/
 void vibrate(TacHammer* tacHammer, double frequency, double intensity, double duration, int dutycycle) {
-  if (frequency < 1 || frequency > 300){
-    ESP_LOGE(tacHammer -> name, "frequency must be between 1Hz and 300Hz.");
+  if (frequency < 10 || frequency > 300){
+    ESP_LOGE(tacHammer -> name, "frequency must be between 10Hz and 300Hz.");
     return;
   }
     if (intensity < 0 || intensity > 1){
