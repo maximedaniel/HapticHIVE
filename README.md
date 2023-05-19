@@ -6,6 +6,7 @@ Instructions to install and use the HapticHIVE hardware during the DFP hackathon
 
 
 ## Schematic
+missing the DRV2605L driver in this schematic to connect on JP1, JP2, JP3, JP4
 ![schematic](images/schematic.jpg)
 
 ## Installation 
