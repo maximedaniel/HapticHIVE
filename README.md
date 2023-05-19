@@ -1,6 +1,9 @@
 # dfp-hackathon
 Instructions to install and use the HapticHIVE hardware during the DFP hackathon on May 19th, 2023 at UBC's Okanagan Campus.
 
+# Overview
+![kit](images/kit.jpg)
+
 ## Installation 
 1. Download & Install Arduino IDE 2.1.0
 2. Install ESP32 board manager using Arduino IDE
